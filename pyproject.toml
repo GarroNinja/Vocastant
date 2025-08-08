@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vocastant-agent"
+version = "1.0.0"
+description = "Vocastant AI Voice Agent for Document Analysis"
+requires-python = ">=3.8"
+dependencies = [
+    "livekit-agents[deepgram,google,cartesia,silero,turn-detector]~=1.2",
+    "python-dotenv"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["*"]
+exclude = ["tests*", "frontend*", "backend*"]

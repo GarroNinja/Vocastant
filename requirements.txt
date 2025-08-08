@@ -1,0 +1,3 @@
+livekit-agents[deepgram,google,cartesia,silero,turn-detector]~=1.2
+python-dotenv
+aiohttp

@@ -1,0 +1,35 @@
+# Python artifacts
+venv/
+venv_*/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Node.js artifacts
+node_modules/
+*/node_modules/
+frontend/dist/
+backend/uploads/
+
+# Local environment & config files
+.env.local
+.env.development
+.env.test
+.env.production
+.DS_Store
+
+# Logs & temp files
+*.log
+*.gz
+*.tgz
+.tmp
+.cache
+
+# Documentation & scripts  
+*.md
+scripts/
+
+# Large directories to exclude
+frontend/
+backend/
+

@@ -1,0 +1,13 @@
+venv/
+node_modules/
+__pycache__/
+*.pyc
+.git/
+.env
+*.log
+.DS_Store
+frontend/
+backend/
+scripts/
+test_agent.py
+*.md
