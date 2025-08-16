@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { Document, Message, Session, VoiceState } from '../types'
+import { Document, Message, Session, VoiceState, TranscriptionMessage } from '../types'
 
 interface AppState {
   // Session state
@@ -16,6 +16,9 @@ interface AppState {
   // Voice state
   voiceState: VoiceState
   
+  // Transcription messages
+  transcriptionMessages: TranscriptionMessage[]
+  
   // Actions
   setSession: (session: Session) => void
   addDocument: (document: Document) => void
@@ -27,6 +30,9 @@ interface AppState {
   clearMessages: () => void
   setVoiceState: (state: Partial<VoiceState>) => void
   setConnected: (connected: boolean) => void
+  addTranscriptionMessage: (message: TranscriptionMessage) => void
+  updateTranscriptionMessage: (id: string, updates: Partial<TranscriptionMessage>) => void
+  clearTranscriptionMessages: () => void
   reset: () => void
 }
 
@@ -36,6 +42,7 @@ const initialState = {
   documents: [],
   selectedDocument: null,
   messages: [],
+  transcriptionMessages: [],
   voiceState: {
     isListening: false,
     isSpeaking: false,
@@ -83,6 +90,18 @@ export const useAppStore = create<AppState>((set) => ({
   })),
   
   setConnected: (connected) => set({ isConnected: connected }),
+  
+  addTranscriptionMessage: (message) => set((state) => ({
+    transcriptionMessages: [...state.transcriptionMessages, message],
+  })),
+  
+  updateTranscriptionMessage: (id: string, updates: Partial<TranscriptionMessage>) => set((state) => ({
+    transcriptionMessages: state.transcriptionMessages.map(msg => 
+      msg.id === id ? { ...msg, ...updates } : msg
+    ),
+  })),
+  
+  clearTranscriptionMessages: () => set({ transcriptionMessages: [] }),
   
   reset: () => set(initialState),
 })) 

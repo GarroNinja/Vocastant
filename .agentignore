@@ -1,4 +1,5 @@
 venv/
+venv_agent/
 node_modules/
 __pycache__/
 *.pyc

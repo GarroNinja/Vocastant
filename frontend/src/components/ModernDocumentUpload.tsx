@@ -14,7 +14,11 @@ interface UploadStatus {
   error?: string
 }
 
-export const ModernDocumentUpload: React.FC = () => {
+interface ModernDocumentUploadProps {
+  onUploadComplete?: () => void
+}
+
+export const ModernDocumentUpload: React.FC<ModernDocumentUploadProps> = ({ onUploadComplete }) => {
   const { addDocument } = useAppStore()
   const [isDragOver, setIsDragOver] = useState(false)
   const [uploadStatuses, setUploadStatuses] = useState<UploadStatus[]>([])
@@ -35,12 +39,12 @@ export const ModernDocumentUpload: React.FC = () => {
       }])
 
       try {
-        // Create FormData
-        const formData = new FormData()
-        formData.append('document', file)
-
-        // Upload file
-        const response = await apiService.uploadDocument(file)
+        // Get current room name from API service
+        const currentRoom = apiService.getCurrentRoomName();
+        console.log('📤 Uploading to room:', currentRoom);
+        
+        // Upload file with explicit room name
+        const response = await apiService.uploadDocument(file, currentRoom)
         
         // Update status to success
         setUploadStatuses(prev => prev.map(status => 
@@ -60,6 +64,11 @@ export const ModernDocumentUpload: React.FC = () => {
         }
         
         addDocument(newDoc)
+        
+        // Call completion callback
+        if (onUploadComplete) {
+          onUploadComplete()
+        }
         
         // Remove success status after 3 seconds
         setTimeout(() => {
@@ -117,10 +126,10 @@ export const ModernDocumentUpload: React.FC = () => {
   }
 
   return (
-    <Card className="w-full bg-gradient-to-br from-background to-muted/20 border-0 shadow-xl">
-      <CardHeader className="border-b border-border/50 bg-gradient-to-r from-primary/5 to-primary/10">
-        <CardTitle className="flex items-center gap-3 text-xl font-bold">
-          <Upload className="h-6 w-6 text-primary" />
+    <Card className="w-full bg-gray-800/80 border-green-500/30 shadow-xl">
+      <CardHeader className="border-b border-green-500/20 bg-green-500/10">
+        <CardTitle className="flex items-center gap-3 text-lg font-bold text-green-400">
+          <Upload className="h-5 w-5" />
           Upload Documents
         </CardTitle>
       </CardHeader>
@@ -128,36 +137,38 @@ export const ModernDocumentUpload: React.FC = () => {
       <CardContent className="p-6">
         {/* Drag & Drop Area */}
         <div
-          className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 ${
+          className={`border-2 border-dashed rounded-xl p-6 text-center transition-all duration-200 cursor-pointer ${
             isDragOver
-              ? 'border-primary bg-primary/5 scale-105'
-              : 'border-border/50 hover:border-primary/50 hover:bg-muted/20'
+              ? 'border-lime-400 bg-green-500/20 scale-105 shadow-lg'
+              : 'border-green-500/40 hover:border-green-400 hover:bg-green-500/10'
           }`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
-          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Upload className="h-8 w-8 text-primary" />
-          </div>
-          
-          <h3 className="text-lg font-semibold mb-2">
-            {isDragOver ? 'Drop files here' : 'Drag & drop files here'}
-          </h3>
-          
-          <p className="text-muted-foreground mb-4">
-            or click to browse your files
-          </p>
-          
-          <Button 
+          <div 
+            className="w-full cursor-pointer"
             onClick={openFileDialog}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
-            Choose Files
-          </Button>
-          
-          <div className="mt-4 text-xs text-muted-foreground">
-            Supports PDF, Word, and Text files up to 10MB
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-300 ${
+              isDragOver ? 'bg-green-500/30 shadow-lg' : 'bg-green-500/20'
+            }`}>
+              <Upload className={`h-6 w-6 transition-all duration-300 text-green-400 ${
+                isDragOver ? 'scale-110' : ''
+              }`} />
+            </div>
+            
+            <h3 className="text-base font-semibold mb-2 text-green-400">
+              {isDragOver ? 'Drop files here!' : 'Upload Documents'}
+            </h3>
+            
+            <p className="text-green-200 mb-3 text-sm">
+              Drag and drop or click to browse
+            </p>
+            
+            <div className="text-xs text-green-300">
+              PDF, Word, Text • Max 10MB
+            </div>
           </div>
         </div>
 
@@ -174,35 +185,35 @@ export const ModernDocumentUpload: React.FC = () => {
         {/* Upload Status */}
         {uploadStatuses.length > 0 && (
           <div className="mt-6 space-y-3">
-            <h4 className="font-medium text-sm">Upload Progress</h4>
+            <h4 className="font-medium text-sm text-green-300">Upload Progress</h4>
             {uploadStatuses.map((status) => (
               <div
                 key={status.id}
-                className="flex items-center gap-3 p-3 bg-card border border-border/50 rounded-lg"
+                className="flex items-center gap-3 p-3 bg-gray-700/60 border border-green-500/30 rounded-lg"
               >
                 {/* Status Icon */}
                 <div className="flex-shrink-0">
                   {status.status === 'uploading' && (
-                    <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                    <Loader2 className="h-5 w-5 text-lime-400 animate-spin" />
                   )}
                   {status.status === 'success' && (
-                    <CheckCircle className="h-5 w-5 text-green-500" />
+                    <CheckCircle className="h-5 w-5 text-green-400" />
                   )}
                   {status.status === 'error' && (
-                    <AlertCircle className="h-5 w-5 text-destructive" />
+                    <AlertCircle className="h-5 w-5 text-red-400" />
                   )}
                 </div>
 
                 {/* File Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-medium truncate">{status.name}</p>
+                    <p className="text-sm font-medium truncate text-white">{status.name}</p>
                     <Badge 
-                      variant={
-                        status.status === 'success' ? 'default' :
-                        status.status === 'error' ? 'destructive' : 'secondary'
-                      }
-                      className="text-xs"
+                      className={`text-xs ${
+                        status.status === 'success' ? 'bg-green-500/20 text-green-400 border-green-500/50' :
+                        status.status === 'error' ? 'bg-red-500/20 text-red-400 border-red-500/50' : 
+                        'bg-lime-500/20 text-lime-400 border-lime-500/50'
+                      }`}
                     >
                       {status.status === 'uploading' ? 'Uploading...' :
                        status.status === 'success' ? 'Success' : 'Error'}
@@ -210,16 +221,16 @@ export const ModernDocumentUpload: React.FC = () => {
                   </div>
                   
                   {status.status === 'uploading' && (
-                    <div className="w-full bg-muted rounded-full h-2">
+                    <div className="w-full bg-gray-600 rounded-full h-2">
                       <div 
-                        className="bg-primary h-2 rounded-full transition-all duration-300"
+                        className="bg-gradient-to-r from-lime-500 to-green-500 h-2 rounded-full transition-all duration-300"
                         style={{ width: `${status.progress}%` }}
                       />
                     </div>
                   )}
                   
                   {status.error && (
-                    <p className="text-xs text-destructive mt-1">{status.error}</p>
+                    <p className="text-xs text-red-400 mt-1">{status.error}</p>
                   )}
                 </div>
 
@@ -227,7 +238,7 @@ export const ModernDocumentUpload: React.FC = () => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 hover:bg-destructive/10 hover:text-destructive"
+                  className="h-6 w-6 hover:bg-red-500/20 hover:text-red-400 text-gray-400"
                   onClick={() => removeUploadStatus(status.id)}
                 >
                   <X className="h-3 w-3" />

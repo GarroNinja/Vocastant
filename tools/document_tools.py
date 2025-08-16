@@ -10,7 +10,7 @@ from livekit.agents.llm import function_tool
 logger = logging.getLogger("document_tools")
 
 # Backend API configuration
-BACKEND_URL = os.getenv('BACKEND_URL', 'https://alive-jackal-in.ngrok-free.app')
+BACKEND_URL = os.getenv('BACKEND_URL', 'https://d1ye5bx9w8mu3e.cloudfront.net')
 
 class DocumentAccessError(Exception):
     """Custom exception for document access errors"""

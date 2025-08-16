@@ -3,3 +3,6 @@
 
 [agent]
   id = "CA_CXS3XjpF3doD"
+  auto_join = true
+  room_join_policy = "all"
+  max_concurrent_rooms = 10

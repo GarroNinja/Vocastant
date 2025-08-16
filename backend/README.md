@@ -1,141 +1,139 @@
 # Vocastant Backend
 
-Backend API server for managing LiveKit rooms and generating access tokens.
+A modular Node.js backend for Vocastant, providing LiveKit room management, document processing, and AI agent integration.
 
-## Features
+## 🏗️ Architecture
 
-- ✅ **Room Management**: Create, list, and delete LiveKit rooms
-- ✅ **Token Generation**: Generate secure access tokens for participants
-- ✅ **RESTful API**: Clean HTTP endpoints for frontend integration
-- ✅ **CORS Support**: Configured for frontend communication
-- ✅ **Error Handling**: Comprehensive error handling and logging
+The backend has been refactored into a modular structure for better maintainability:
 
-## Setup
-
-### 1. Install Dependencies
-
-```bash
-npm install
+```
+backend/
+├── main.js                 # Main server entry point
+├── routes/                 # Route handlers
+│   ├── documents.js        # Document-related endpoints
+│   └── rooms.js           # Room management endpoints
+├── middleware/             # Express middleware
+│   └── roomMiddleware.js   # Room validation middleware
+├── services/               # Business logic services
+│   └── livekitService.js   # LiveKit integration service
+├── utils/                  # Utility functions
+│   └── textExtractor.js    # Text extraction utilities
+├── database.js             # Database operations
+├── s3.js                   # AWS S3 operations
+└── package.json            # Dependencies and scripts
 ```
 
-### 2. Environment Configuration
+## 🚀 Quick Start
 
-Create a `.env` file in the backend directory:
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-```env
-# LiveKit Configuration
-LIVEKIT_URL=https://vocastant-8kvolde0.livekit.cloud
-LIVEKIT_API_KEY=your_api_key_here
-LIVEKIT_API_SECRET=your_api_secret_here
+2. **Set up environment variables:**
+   ```bash
+   cp env.example .env
+   # Edit .env with your configuration
+   ```
 
-# Server Configuration
-PORT=3001
-NODE_ENV=development
+3. **Start the server:**
+   ```bash
+   # Development
+   npm run dev
+   
+   # Production
+   npm start
+   ```
 
-# CORS Configuration
-FRONTEND_URL=http://localhost:3000
-```
+## 🔧 Key Features
 
-### 3. Get LiveKit API Credentials
-
-1. Go to [LiveKit Cloud Console](https://cloud.livekit.io/)
-2. Select your project
-3. Go to **API Keys** section
-4. Copy your **API Key** and **API Secret**
-
-### 4. Run the Server
-
-**Development mode:**
-```bash
-npm run dev
-```
-
-**Production mode:**
-```bash
-npm start
-```
-
-## API Endpoints
-
-### Health Check
-```
-GET /health
-```
+### Document Management
+- **Agent Access**: `/api/documents/:documentId/agent-content` - Direct document access for AI agents
+- **Room-scoped Access**: `/api/documents/:documentId/content?roomName=room` - Room-validated document access
+- **File Upload**: Support for PDF, Word, and text files with automatic text extraction
+- **S3 Integration**: Secure file storage and presigned URL generation
 
 ### Room Management
-```
-POST   /api/rooms          # Create a new room
-GET    /api/rooms          # List all rooms
-GET    /api/rooms/:name    # Get room information
-DELETE /api/rooms/:name    # Delete a room
-```
+- **Create/Join**: `/api/rooms` - Create or join LiveKit rooms
+- **Document Context**: `/api/rooms/:roomName/context` - Get all documents for AI context
+- **Participant Tracking**: Automatic participant management and cleanup
 
-### Token Generation
-```
-POST /api/tokens           # Generate access token
-```
+### LiveKit Integration
+- **Real-time Communication**: WebRTC-based voice and video rooms
+- **Token Generation**: Secure access tokens for room participants
+- **Room Lifecycle**: Automatic room creation, management, and cleanup
 
-## Usage Examples
+## 📡 API Endpoints
 
-### Create a Room
+### Documents
+- `GET /api/documents/:documentId/agent-content` - Agent document access
+- `GET /api/documents/:documentId/content?roomName=room` - Room-scoped content
+- `GET /api/documents/:documentId/view?roomName=room` - Document preview
+- `GET /api/documents/:documentId/download?roomName=room` - Document download
+- `DELETE /api/documents/:documentId?roomName=room` - Delete document
+
+### Rooms
+- `POST /api/rooms` - Create/join room
+- `GET /api/rooms/:roomName/documents` - List room documents
+- `POST /api/rooms/:roomName/documents` - Upload document to room
+- `GET /api/rooms/:roomName/context` - Get room context for AI
+- `POST /api/rooms/:roomName/leave` - Leave room
+- `DELETE /api/rooms/:roomName` - Delete room
+
+## 🔒 Security Features
+
+- **CORS Configuration**: Whitelisted origins for production
+- **Room Validation**: All document operations require valid room context
+- **Agent Access**: Special endpoint for AI agents with document validation
+- **S3 Security**: Presigned URLs with expiration and access controls
+
+## 🐳 Docker Deployment
+
 ```bash
-curl -X POST http://localhost:3001/api/rooms \
-  -H "Content-Type: application/json" \
-  -d '{
-    "roomName": "my-room",
-    "maxParticipants": 20,
-    "emptyTimeout": 600
-  }'
+# Build and run
+docker build -t vocastant-backend .
+docker run -p 3001:3001 vocastant-backend
+
+# Or use docker-compose
+docker-compose up -d
 ```
 
-### Generate a Token
-```bash
-curl -X POST http://localhost:3001/api/tokens \
-  -H "Content-Type: application/json" \
-  -d '{
-    "roomName": "my-room",
-    "participantName": "user-123",
-    "ttl": 3600
-  }'
-```
+## 🔍 Troubleshooting
 
-## Frontend Integration
+### Common Issues
 
-The frontend can now call these endpoints instead of using the LiveKit CLI:
+1. **404 on agent-content endpoint**: Ensure the route is defined before other document routes
+2. **Database connection errors**: Check PostgreSQL connection and credentials
+3. **S3 upload failures**: Verify AWS credentials and bucket permissions
+4. **LiveKit errors**: Confirm API key and secret configuration
 
-```javascript
-// Create room and get token
-const response = await fetch('http://localhost:3001/api/tokens', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    roomName: 'my-room',
-    participantName: 'user-123'
-  })
-});
+### Logs
 
-const { token, livekitUrl } = await response.json();
-```
+The server provides detailed logging for debugging:
+- Room operations: 🏠
+- Document operations: 📄
+- Agent access: 🤖
+- Errors: ❌
+- Success: ✅
 
-## Troubleshooting
+## 📚 Dependencies
 
-### Missing API Credentials
-```
-❌ Missing LiveKit API credentials!
-Please set LIVEKIT_API_KEY and LIVEKIT_API_SECRET in your .env file
-```
+- **Express.js**: Web framework
+- **LiveKit**: Real-time communication
+- **PostgreSQL**: Database
+- **AWS SDK**: S3 integration
+- **Multer**: File upload handling
+- **PDF Parse**: PDF text extraction
+- **Mammoth**: Word document processing
 
-**Solution**: Check your `.env` file and ensure the API credentials are correct.
+## 🤝 Contributing
 
-### CORS Issues
-**Solution**: Verify the `FRONTEND_URL` in your `.env` file matches your frontend URL.
+1. Follow the modular structure
+2. Add routes to appropriate route files
+3. Implement business logic in services
+4. Use middleware for common functionality
+5. Update documentation for new endpoints
 
-### Port Conflicts
-**Solution**: Change the `PORT` in your `.env` file if port 3001 is already in use.
+## 📄 License
 
-## Security Notes
-
-- 🔒 API keys are sensitive - never commit them to version control
-- 🌐 CORS is configured for development - adjust for production
-- ⏰ Tokens have configurable TTL (default: 1 hour)
-- 👥 Room permissions are configurable per participant
+MIT License - see LICENSE file for details

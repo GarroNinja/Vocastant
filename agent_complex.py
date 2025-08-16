@@ -25,26 +25,27 @@ from livekit.agents import (
 from livekit.plugins import cartesia, deepgram, google, silero
 
 # Import our custom document tools
-from tools.document_tools_simple import (
-    list_uploaded_documents,
-    analyze_specific_document,
-    analyze_latest_document,
-    get_document_summary,
-    get_document_help,
-)
 from tools.document_tools import (
+    list_uploaded_documents,
+    list_documents_by_room_name,
+    analyze_specific_document,
+    get_document_summary,
     search_documents_for_question,
     test_document_access,
     inject_document_to_context,
+    get_document_help
 )
 from tools.text_utils import clean_text_for_tts
 
 logger = logging.getLogger("agent")
 load_dotenv()
 
-# Backend API configuration  
-BACKEND_URL = os.getenv('BACKEND_URL', 'https://d1ye5bx9w8mu3e.cloudfront.net')
+# Backend API configuration
+BACKEND_URL = os.getenv('BACKEND_URL')
 logger.info(f"BACKEND_URL: {BACKEND_URL}")
+
+# Global room context for tools
+current_room_name = None
 
 def prewarm(proc: JobProcess):
     """Preload VAD model for better performance"""
@@ -56,6 +57,22 @@ async def entrypoint(ctx: JobContext):
     ctx.log_context_fields = {
         "room": ctx.room.name,
     }
+
+    # Store room context globally for tool access - this is the CORRECT way
+    global current_room_name
+    current_room_name = ctx.room.name
+    logger.info(f"🏠 Agent starting in room: {current_room_name}")
+    logger.info(f"🔍 Job metadata: {getattr(ctx, 'job', {}).get('metadata', {})}")
+    logger.info(f"🔍 Room metadata: {ctx.room.metadata}")
+    
+    # Set room context in tools module 
+    try:
+        import tools.document_tools as dt
+        dt.CURRENT_ROOM_NAME = current_room_name
+        logger.info(f"✅ Set global room context: {current_room_name}")
+    except Exception as import_error:
+        logger.error(f"❌ Failed to set room context: {import_error}")
+        # Continue anyway - tools can still work with fallback methods
 
     # Log environment setup
     logger.info(f"DEEPGRAM_API_KEY present: {'DEEPGRAM_API_KEY' in os.environ}")
@@ -92,6 +109,44 @@ async def entrypoint(ctx: JobContext):
             logger.info("False positive interruption detected, resuming")
             session.generate_reply(instructions=ev.extra_instructions or NOT_GIVEN)
 
+        # Send transcription data to frontend
+        async def send_transcription_data(speaker: str, text: str, is_final: bool = True):
+            """Send transcription data to frontend via data channel"""
+            try:
+                import json
+                import time
+                transcription_data = {
+                    "type": "transcription",
+                    "transcript": text,
+                    "speaker": speaker,
+                    "is_final": is_final,
+                    "timestamp": str(int(time.time() * 1000))  # Use system timestamp instead
+                }
+                data_payload = json.dumps(transcription_data).encode('utf-8')
+                
+                # Check if room is connected before sending data
+                if ctx.room.local_participant and hasattr(ctx.room.local_participant, 'publish_data'):
+                    await ctx.room.local_participant.publish_data(data_payload)
+                    logger.info(f"📡 Sent transcription: {speaker} -> {text[:50]}...")
+                else:
+                    logger.warning(f"⚠️ Room not ready for data publishing, skipping transcription")
+            except Exception as e:
+                logger.error(f"❌ Failed to send transcription data: {e}")
+
+        # Manual transcription sending function that tools can use
+        async def manual_send_transcription(speaker: str, text: str):
+            """Manually send transcription data - for use by tools"""
+            await send_transcription_data(speaker, text, True)
+
+        # Add manual transcription function to agent context
+        try:
+            import tools.document_tools as dt
+            dt.SEND_TRANSCRIPTION = manual_send_transcription
+            logger.info("🎯 Transcription system initialized")
+        except Exception as transcription_error:
+            logger.error(f"❌ Failed to set transcription function: {transcription_error}")
+            # Continue anyway
+
         # Metrics collection for performance monitoring
         usage_collector = metrics.UsageCollector()
 
@@ -119,43 +174,45 @@ CONVERSATION STYLE:
 - Use natural language without excessive technical jargon
 
 DOCUMENT ANALYSIS CAPABILITIES:
-- list_uploaded_documents: See room-scoped documents by name (no IDs spoken)
+- list_uploaded_documents: See what documents are available with their IDs (auto-detects room)
+- list_documents_by_room_name: Manually specify room name if auto-detection fails
 - analyze_specific_document: Get full access to document content and answer specific questions
-- analyze_latest_document: Quickly open the most recently uploaded document in this room
 - get_document_summary: Create comprehensive document summaries
+- search_documents_for_question: Find relevant content across multiple documents
+- inject_document_to_context: Directly inject document content into your context
+- test_document_access: Diagnostic tool to check system connectivity
 - get_document_help: Provide help and usage instructions
 
 IMPORTANT DOCUMENT ANALYSIS GUIDELINES:
 - ALWAYS start by calling list_uploaded_documents when users ask about documents
-- Never read or announce raw document IDs. Prefer document names in speech.
-- Use analyze_specific_document or get_document_summary to access actual content (room-scoped)
+- Show document IDs clearly so users can reference them
+- Use analyze_specific_document or get_document_summary to access actual content
 - Base answers on real document text, not assumptions
 - If a tool fails, try another approach or use test_document_access to diagnose
 - Provide clear guidance on how to use the tools effectively
 
 EXAMPLE WORKFLOW:
 1. User asks about documents → Call list_uploaded_documents
-2. User wants to analyze a document → Ask for the document name, then use analyze_specific_document with the internal ID (do not speak it)
+2. User wants to analyze a document → Use analyze_specific_document with the ID
 3. User has questions → Answer based on the actual document content
+4. If issues arise → Use test_document_access to diagnose problems
 
 Be helpful, engaging, and always prioritize giving users access to their document content!""",
 
             tools=[
-                # Room-scoped core tools
                 list_uploaded_documents,
+                list_documents_by_room_name,
                 analyze_specific_document,
-                analyze_latest_document,
                 get_document_summary,
-                get_document_help,
-                # Compatibility tools used by previous flows / playground
                 search_documents_for_question,
                 test_document_access,
                 inject_document_to_context,
+                get_document_help
             ]
         )
         
         logger.info("Agent initialized successfully with document analysis tools")
-        logger.info(f"Available tools: {[tool.__name__ for tool in [list_uploaded_documents, analyze_specific_document, get_document_summary, search_documents_for_question, test_document_access, inject_document_to_context, get_document_help]]}")
+        logger.info(f"Available tools: {[tool.__name__ for tool in [list_uploaded_documents, list_documents_by_room_name, analyze_specific_document, get_document_summary, search_documents_for_question, test_document_access, inject_document_to_context, get_document_help]]}")
         logger.info(f"Backend URL: {BACKEND_URL}")
         
         # Start the session
@@ -169,12 +226,15 @@ Be helpful, engaging, and always prioritize giving users access to their documen
         await ctx.connect()
         logger.info(f"Connected to room: {ctx.room.name}")
 
-        # Generate initial greeting
+        # Generate initial greeting first, then try to load documents
         await session.generate_reply(
             instructions="""Give a brief, friendly greeting introducing yourself as Vocastant, the document analysis assistant. 
             Mention that you can read and analyze uploaded documents and answer questions about them. 
             Keep it under 2 sentences and conversational for voice interaction."""
         )
+
+        # Check for documents without blocking startup
+        logger.info(f"🔄 Room setup complete - documents will be accessed on demand")
         
     except Exception as e:
         logger.error(f"Error in agent entrypoint: {e}")

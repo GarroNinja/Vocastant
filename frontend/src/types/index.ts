@@ -63,6 +63,7 @@ export interface Document {
   id: string
   name: string
   type: 'pdf' | 'docx' | 'txt' | 'md'
+  mimeType?: string // Store original MIME type for proper handling
   size: number
   content?: string
   uploadedAt: Date
@@ -93,4 +94,12 @@ export interface VoiceState {
   isConnected: boolean
   transcript: string
   error?: string
+}
+
+export interface TranscriptionMessage {
+  id: string
+  text: string
+  timestamp: Date
+  speaker: 'user' | 'agent'
+  isFinal: boolean
 } 

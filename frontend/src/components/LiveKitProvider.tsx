@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { 
   RoomContext, 
   RoomAudioRenderer
@@ -10,7 +10,7 @@ interface LiveKitProviderProps {
   children: React.ReactNode
 }
 
-export const LiveKitProvider: React.FC<LiveKitProviderProps> = ({ children }) => {
+export const LiveKitProvider = ({ children }: LiveKitProviderProps) => {
   const { setConnected, setVoiceState } = useAppStore()
   const [room] = useState(new Room())
 
@@ -29,6 +29,38 @@ export const LiveKitProvider: React.FC<LiveKitProviderProps> = ({ children }) =>
       console.log('🌐 URL:', config.url)
       
       await room.connect(config.url, config.token)
+      
+      // Enable microphone after connection
+      try {
+        console.log('🎤 Requesting microphone permissions...')
+        
+        // First check if we have permission
+        const permission = await navigator.permissions.query({ name: 'microphone' as PermissionName })
+        console.log('🔐 Microphone permission status:', permission.state)
+        
+        if (permission.state === 'denied') {
+          throw new Error('Microphone permission denied by user')
+        }
+        
+        // Enable microphone
+        await room.localParticipant.setMicrophoneEnabled(true)
+        console.log('✅ Microphone enabled successfully')
+        
+        // Verify audio track is published
+        const audioTrack = room.localParticipant.getTrackPublication('microphone' as any)
+        if (audioTrack) {
+          console.log('📡 Audio track published:', audioTrack.trackSid)
+        } else {
+          console.warn('⚠️ No audio track found after enabling microphone')
+        }
+        
+      } catch (micError) {
+        console.error('❌ Failed to enable microphone:', micError)
+        setVoiceState({ 
+          error: `Microphone error: ${micError instanceof Error ? micError.message : 'Unknown error'}`,
+          isConnected: true
+        })
+      }
       
       console.log('✅ Connected to LiveKit room:', config.roomName)
       setConnected(true)
@@ -63,7 +95,7 @@ export const LiveKitProvider: React.FC<LiveKitProviderProps> = ({ children }) =>
   }
 
   // Auto-connect when component mounts or when config changes
-  React.useEffect(() => {
+  useEffect(() => {
     const configStr = localStorage.getItem('livekit-config')
     if (configStr) {
       connectToRoom()
@@ -71,7 +103,7 @@ export const LiveKitProvider: React.FC<LiveKitProviderProps> = ({ children }) =>
   }, [])
 
   // Listen for custom room config changes (when user creates/joins room)
-  React.useEffect(() => {
+  useEffect(() => {
     const handleRoomConfigChange = (e: CustomEvent) => {
       console.log('🔄 Room config changed, connecting...', e.detail)
       connectToRoom()

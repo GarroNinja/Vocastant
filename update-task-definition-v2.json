@@ -1,0 +1,44 @@
+{
+  "family": "vocastant-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::503238928459:role/vocastant-ecs-task-role",
+  "taskRoleArn": "arn:aws:iam::503238928459:role/vocastant-ecs-task-role",
+  "containerDefinitions": [
+    {
+      "name": "vocastant",
+      "image": "503238928459.dkr.ecr.ap-south-1.amazonaws.com/vocastant:latest",
+      "portMappings": [
+        {
+          "containerPort": 3001,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {"name": "NODE_ENV", "value": "production"},
+        {"name": "PORT", "value": "3001"},
+        {"name": "DB_HOST", "value": "vocastant-db-new.czs8g0ask8zb.ap-south-1.rds.amazonaws.com"},
+        {"name": "DB_NAME", "value": "vocastant"},
+        {"name": "DB_USER", "value": "vocastant_admin"},
+        {"name": "DB_PASSWORD", "value": "VocastantDB202511697e770e2e8cab"},
+        {"name": "DB_PORT", "value": "5432"},
+        {"name": "S3_BUCKET_NAME", "value": "vocastant-documents-3689"},
+        {"name": "AWS_REGION", "value": "ap-south-1"},
+        {"name": "LIVEKIT_URL", "value": "wss://vocastant-8kvolde0.livekit.cloud"},
+        {"name": "LIVEKIT_API_KEY", "value": "API4R9zEccaYYGK"},
+        {"name": "LIVEKIT_API_SECRET", "value": "fFDtee9SJefPwpLe5O82p0mijOBA1oDNXQdAVdTWUXsP"},
+        {"name": "FRONTEND_URL", "value": "https://d37ldj18o2bua6.cloudfront.net"}
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/vocastant",
+          "awslogs-region": "ap-south-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

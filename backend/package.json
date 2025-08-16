@@ -2,10 +2,10 @@
   "name": "vocastant-backend",
   "version": "1.0.0",
   "description": "Backend API for Vocastant LiveKit room management and token generation",
-  "main": "server.js",
+  "main": "main.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "node main.js",
+    "dev": "nodemon main.js"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -15,7 +15,11 @@
     "multer": "^1.4.5-lts.1",
     "pdf-parse": "^1.1.1",
     "mammoth": "^1.7.2",
-    "fs-extra": "^11.2.0"
+    "fs-extra": "^11.2.0",
+    "pg": "^8.11.3",
+    "aws-sdk": "^2.1691.0",
+    "multer-s3": "^2.10.0",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
