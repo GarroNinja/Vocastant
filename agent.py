@@ -63,7 +63,7 @@ async def entrypoint(ctx: JobContext):
     logger.info(f"CARTESIA_API_KEY present: {'CARTESIA_API_KEY' in os.environ}")
     
     try:
-        # Create AgentSession with proper configuration
+        # Create AgentSession with proper configuration including transcription
         session = AgentSession(
             # LLM: Google Gemini for natural language processing
             llm=google.LLM(model="gemini-1.5-flash"),
@@ -84,6 +84,9 @@ async def entrypoint(ctx: JobContext):
             
             # VAD: Silero for voice activity detection
             vad=ctx.proc.userdata["vad"],
+            
+            # Enable transcription for live transcription functionality
+            transcription=True,
         )
 
         # Handle false positive interruptions

@@ -1,6 +1,8 @@
 # Environment and secrets
 .env
 .env.*
+deployment.env
+deployment.env.*
 !.env.example
 secrets.env
 .secrets

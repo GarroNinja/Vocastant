@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { 
   RoomContext, 
   RoomAudioRenderer
@@ -14,7 +14,7 @@ export const LiveKitProvider = ({ children }: LiveKitProviderProps) => {
   const { setConnected, setVoiceState } = useAppStore()
   const [room] = useState(new Room())
 
-  const connectToRoom = async () => {
+  const connectToRoom = useCallback(async () => {
     try {
       // Get room config from localStorage (set by StartPage)
       const configStr = localStorage.getItem('livekit-config')
@@ -92,7 +92,7 @@ export const LiveKitProvider = ({ children }: LiveKitProviderProps) => {
       }
       setConnected(false)
     }
-  }
+  }, [room, setConnected, setVoiceState])
 
   // Auto-connect when component mounts or when config changes
   useEffect(() => {
@@ -100,7 +100,7 @@ export const LiveKitProvider = ({ children }: LiveKitProviderProps) => {
     if (configStr) {
       connectToRoom()
     }
-  }, [])
+  }, [connectToRoom])
 
   // Listen for custom room config changes (when user creates/joins room)
   useEffect(() => {
@@ -111,7 +111,7 @@ export const LiveKitProvider = ({ children }: LiveKitProviderProps) => {
 
     window.addEventListener('roomConfigChanged', handleRoomConfigChange as EventListener)
     return () => window.removeEventListener('roomConfigChanged', handleRoomConfigChange as EventListener)
-  }, [])
+  }, [connectToRoom])
 
   return (
     <RoomContext.Provider value={room}>
